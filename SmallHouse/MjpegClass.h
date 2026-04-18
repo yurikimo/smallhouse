@@ -7,6 +7,7 @@
 #ifndef _MJPEGCLASS_H_
 #define _MJPEGCLASS_H_
 
+// Tune only after measuring decode throughput and frame stability on hardware.
 #define READ_BUFFER_SIZE 1024
 #define MAXOUTPUTSIZE (MAX_BUFFERED_PIXELS / 16 / 16)
 
