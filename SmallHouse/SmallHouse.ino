@@ -4,29 +4,29 @@
 #include <Arduino_GFX_Library.h>
 #include "TCA9554.h"
 
-#define GFX_BL 6
+static const int GFX_BL = 6;
 
 // Display SPI pins
-#define SPI_MISO 2
-#define SPI_MOSI 1
-#define SPI_SCLK 5
-#define LCD_DC 3
-#define LCD_CS -1
-#define LCD_RST -1
+static const int SPI_MISO = 2;
+static const int SPI_MOSI = 1;
+static const int SPI_SCLK = 5;
+static const int LCD_DC = 3;
+static const int LCD_CS = -1;
+static const int LCD_RST = -1;
 
 // Display geometry
-#define LCD_HOR_RES 320
-#define LCD_VER_RES 480
+static const int LCD_HOR_RES = 320;
+static const int LCD_VER_RES = 480;
 
 // SD_MMC pins
-#define SD_CLK_PIN 11
-#define SD_CMD_PIN 10
-#define SD_D0_PIN 9
+static const int SD_CLK_PIN = 11;
+static const int SD_CMD_PIN = 10;
+static const int SD_D0_PIN = 9;
 
 // MJPEG storage
-#define MJPEG_FOLDER "/videos"
-#define MAX_FILES 20
-#define MJPEG_PATH_BUFFER_SIZE 128
+static const char MJPEG_FOLDER[] = "/videos";
+static const int MAX_FILES = 20;
+static const int MJPEG_PATH_BUFFER_SIZE = 128;
 
 MjpegClass mjpeg;
 int total_frames;
