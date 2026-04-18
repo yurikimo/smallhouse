@@ -36,14 +36,13 @@ unsigned long total_show_video;
 unsigned long start_ms;
 unsigned long curr_ms;
 
-long output_buf_size;
 long estimateBufferSize;
 uint8_t *mjpeg_buf;
-uint16_t *output_buf;
 static int currentMjpegIndex = 0;
 int mjpegCount = 0;
+char mjpegPathBuffer[MJPEG_PATH_BUFFER_SIZE];
 
-String mjpegFileList[MAX_FILES];
+char mjpegFileList[MAX_FILES][MJPEG_PATH_BUFFER_SIZE];
 uint32_t mjpegFileSizes[MAX_FILES] = {0};
 
 TCA9554 TCA(0x20);
@@ -102,7 +101,7 @@ static void load_mjpeg_files_list(void)
       String name = file.name();
       if (name.endsWith(".mjpeg"))
       {
-        mjpegFileList[mjpegCount] = name;
+        name.toCharArray(mjpegFileList[mjpegCount], sizeof(mjpegFileList[mjpegCount]));
         mjpegFileSizes[mjpegCount] = file.size();
         mjpegCount++;
 
@@ -123,7 +122,7 @@ static void load_mjpeg_files_list(void)
     Serial.printf(
         "File %d: %s, Size: %lu bytes (%s)\n",
         i,
-        mjpegFileList[i].c_str(),
+        mjpegFileList[i],
         mjpegFileSizes[i],
         format_bytes(mjpegFileSizes[i]).c_str());
   }
@@ -205,20 +204,21 @@ static void play_mjpeg_from_sd_card(char *mjpeg_filename)
 
 static void play_selected_mjpeg(int mjpeg_index)
 {
-  String full_path;
-  char mjpeg_filename[MJPEG_PATH_BUFFER_SIZE];
-
   if (mjpegCount <= 0)
   {
     Serial.println("No MJPEG files available for playback.");
     return;
   }
 
-  full_path = String(MJPEG_FOLDER) + "/" + mjpegFileList[mjpeg_index];
-  full_path.toCharArray(mjpeg_filename, sizeof(mjpeg_filename));
+  snprintf(
+      mjpegPathBuffer,
+      sizeof(mjpegPathBuffer),
+      "%s/%s",
+      MJPEG_FOLDER,
+      mjpegFileList[mjpeg_index]);
 
-  Serial.printf("Playing %s\n", mjpeg_filename);
-  play_mjpeg_from_sd_card(mjpeg_filename);
+  Serial.printf("Playing %s\n", mjpegPathBuffer);
+  play_mjpeg_from_sd_card(mjpegPathBuffer);
 }
 
 void setup(void)
@@ -255,17 +255,6 @@ void setup(void)
   }
 
   Serial.println("Buffer allocation");
-  output_buf_size = gfx->width() * 4 * 2;
-  output_buf = (uint16_t *)heap_caps_aligned_alloc(16, output_buf_size * sizeof(uint16_t), MALLOC_CAP_DMA);
-  if (!output_buf)
-  {
-    Serial.println("output_buf aligned_alloc failed!");
-    while (true)
-    {
-      /* no need to continue */
-    }
-  }
-
   estimateBufferSize = gfx->width() * gfx->height() * 2 / 5;
   mjpeg_buf = (uint8_t *)heap_caps_malloc(estimateBufferSize, MALLOC_CAP_8BIT);
   if (!mjpeg_buf)
