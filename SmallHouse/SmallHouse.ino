@@ -28,6 +28,16 @@ static const char MJPEG_FOLDER[] = "/videos";
 static const int MAX_FILES = 20;
 static const int MJPEG_PATH_BUFFER_SIZE = 128;
 
+#define DEBUG_LOGGING 1
+
+#if DEBUG_LOGGING
+#define DEBUG_PRINTLN(message) Serial.println(message)
+#define DEBUG_PRINTF(...) Serial.printf(__VA_ARGS__)
+#else
+#define DEBUG_PRINTLN(message) do { } while (0)
+#define DEBUG_PRINTF(...) do { } while (0)
+#endif
+
 MjpegClass mjpeg;
 int total_frames;
 unsigned long total_read_video;
@@ -105,7 +115,7 @@ static void load_mjpeg_files_list(void)
   File mjpeg_dir = SD_MMC.open(MJPEG_FOLDER);
   if (!mjpeg_dir)
   {
-    Serial.printf("Failed to open %s folder\n", MJPEG_FOLDER);
+    DEBUG_PRINTF("Failed to open %s folder\n", MJPEG_FOLDER);
     while (true)
     {
       /* Storage is required for playback. */
@@ -143,10 +153,10 @@ static void load_mjpeg_files_list(void)
 
   sort_mjpeg_files_list();
 
-  Serial.printf("%d mjpeg files read\n", mjpegCount);
+  DEBUG_PRINTF("%d mjpeg files read\n", mjpegCount);
   for (int i = 0; i < mjpegCount; i++)
   {
-    Serial.printf(
+    DEBUG_PRINTF(
         "File %d: %s, Size: %lu bytes (%s)\n",
         i,
         mjpegFileList[i],
@@ -172,14 +182,14 @@ static void play_mjpeg_from_sd_card(char *mjpeg_filename)
 {
   File mjpegFile = SD_MMC.open(mjpeg_filename, "r");
 
-  Serial.printf("Opening %s\n", mjpeg_filename);
+  DEBUG_PRINTF("Opening %s\n", mjpeg_filename);
   if (!mjpegFile || mjpegFile.isDirectory())
   {
-    Serial.printf("ERROR: Failed to open %s file for reading\n", mjpeg_filename);
+    DEBUG_PRINTF("ERROR: Failed to open %s file for reading\n", mjpeg_filename);
     return;
   }
 
-  Serial.println("MJPEG start");
+  DEBUG_PRINTLN("MJPEG start");
   gfx->fillScreen(RGB565_BLACK);
 
   start_ms = millis();
@@ -199,7 +209,7 @@ static void play_mjpeg_from_sd_card(char *mjpeg_filename)
           displayWidth,
           displayHeight))
   {
-    Serial.println("ERROR: MJPEG decoder setup failed");
+    DEBUG_PRINTLN("ERROR: MJPEG decoder setup failed");
     mjpegFile.close();
     return;
   }
@@ -220,17 +230,17 @@ static void play_mjpeg_from_sd_card(char *mjpeg_filename)
     int time_used = millis() - start_ms;
     float fps = 1000.0 * total_frames / time_used;
 
-    Serial.println(F("MJPEG end"));
+    DEBUG_PRINTLN(F("MJPEG end"));
     mjpegFile.close();
 
     total_decode_video -= total_show_video;
-    Serial.printf("Total frames: %d\n", total_frames);
-    Serial.printf("Time used: %d ms\n", time_used);
-    Serial.printf("Average FPS: %0.1f\n", fps);
-    Serial.printf("Read MJPEG: %lu ms (%0.1f %%)\n", total_read_video, 100.0 * total_read_video / time_used);
-    Serial.printf("Decode video: %lu ms (%0.1f %%)\n", total_decode_video, 100.0 * total_decode_video / time_used);
-    Serial.printf("Show video: %lu ms (%0.1f %%)\n", total_show_video, 100.0 * total_show_video / time_used);
-    Serial.printf("Video size (wxh): %d×%d, scale factor=%d\n", mjpeg.getWidth(), mjpeg.getHeight(), mjpeg.getScale());
+    DEBUG_PRINTF("Total frames: %d\n", total_frames);
+    DEBUG_PRINTF("Time used: %d ms\n", time_used);
+    DEBUG_PRINTF("Average FPS: %0.1f\n", fps);
+    DEBUG_PRINTF("Read MJPEG: %lu ms (%0.1f %%)\n", total_read_video, 100.0 * total_read_video / time_used);
+    DEBUG_PRINTF("Decode video: %lu ms (%0.1f %%)\n", total_decode_video, 100.0 * total_decode_video / time_used);
+    DEBUG_PRINTF("Show video: %lu ms (%0.1f %%)\n", total_show_video, 100.0 * total_show_video / time_used);
+    DEBUG_PRINTF("Video size (wxh): %d×%d, scale factor=%d\n", mjpeg.getWidth(), mjpeg.getHeight(), mjpeg.getScale());
   }
 }
 
@@ -238,7 +248,7 @@ static void play_selected_mjpeg(int mjpeg_index)
 {
   if (mjpegCount <= 0)
   {
-    Serial.println("No MJPEG files available for playback.");
+    DEBUG_PRINTLN("No MJPEG files available for playback.");
     return;
   }
 
@@ -249,7 +259,7 @@ static void play_selected_mjpeg(int mjpeg_index)
       MJPEG_FOLDER,
       mjpegFileList[mjpeg_index]);
 
-  Serial.printf("Playing %s\n", mjpegPathBuffer);
+  DEBUG_PRINTF("Playing %s\n", mjpegPathBuffer);
   play_mjpeg_from_sd_card(mjpegPathBuffer);
 }
 
@@ -263,7 +273,7 @@ void setup(void)
 
   if (!gfx->begin())
   {
-    Serial.println("gfx->begin() failed!");
+    DEBUG_PRINTLN("gfx->begin() failed!");
   }
 
   displayWidth = gfx->width();
@@ -281,20 +291,20 @@ void setup(void)
 
   if (!SD_MMC.begin("/sdcard", true))
   {
-    Serial.println(F("SD Mount Failed!"));
+    DEBUG_PRINTLN(F("SD Mount Failed!"));
     gfx->println(F("SD Mount Failed!"));
   }
   else
   {
-    Serial.println(F("SD Mounted. Scanning for videos..."));
+    DEBUG_PRINTLN(F("SD Mounted. Scanning for videos..."));
   }
 
-  Serial.println("Buffer allocation");
+  DEBUG_PRINTLN("Buffer allocation");
   estimateBufferSize = displayWidth * displayHeight * 2 / 5;
   mjpeg_buf = (uint8_t *)heap_caps_malloc(estimateBufferSize, MALLOC_CAP_8BIT);
   if (!mjpeg_buf)
   {
-    Serial.println("mjpeg_buf allocation failed!");
+    DEBUG_PRINTLN("mjpeg_buf allocation failed!");
     while (true)
     {
       /* no need to continue */
