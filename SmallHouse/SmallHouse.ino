@@ -40,6 +40,8 @@ long estimateBufferSize;
 uint8_t *mjpeg_buf;
 static int currentMjpegIndex = 0;
 int mjpegCount = 0;
+int displayWidth = 0;
+int displayHeight = 0;
 char mjpegPathBuffer[MJPEG_PATH_BUFFER_SIZE];
 
 char mjpegFileList[MAX_FILES][MJPEG_PATH_BUFFER_SIZE];
@@ -72,6 +74,29 @@ static String format_bytes(size_t bytes)
   else
   {
     return String(bytes / 1024.0 / 1024.0, 2) + " MB";
+  }
+}
+
+static void sort_mjpeg_files_list(void)
+{
+  for (int i = 0; i < mjpegCount - 1; i++)
+  {
+    for (int j = i + 1; j < mjpegCount; j++)
+    {
+      if (strcmp(mjpegFileList[i], mjpegFileList[j]) > 0)
+      {
+        char temp_name[MJPEG_PATH_BUFFER_SIZE];
+        uint32_t temp_size;
+
+        memcpy(temp_name, mjpegFileList[i], sizeof(temp_name));
+        memcpy(mjpegFileList[i], mjpegFileList[j], sizeof(mjpegFileList[i]));
+        memcpy(mjpegFileList[j], temp_name, sizeof(mjpegFileList[j]));
+
+        temp_size = mjpegFileSizes[i];
+        mjpegFileSizes[i] = mjpegFileSizes[j];
+        mjpegFileSizes[j] = temp_size;
+      }
+    }
   }
 }
 
@@ -115,6 +140,8 @@ static void load_mjpeg_files_list(void)
     file.close();
   }
   mjpeg_dir.close();
+
+  sort_mjpeg_files_list();
 
   Serial.printf("%d mjpeg files read\n", mjpegCount);
   for (int i = 0; i < mjpegCount; i++)
@@ -162,15 +189,20 @@ static void play_mjpeg_from_sd_card(char *mjpeg_filename)
   total_decode_video = 0;
   total_show_video = 0;
 
-  mjpeg.setup(
-      &mjpegFile,
-      mjpeg_buf,
-      jpeg_draw_callback,
-      true,
-      0,
-      0,
-      gfx->width(),
-      gfx->height());
+  if (!mjpeg.setup(
+          &mjpegFile,
+          mjpeg_buf,
+          jpeg_draw_callback,
+          true,
+          0,
+          0,
+          displayWidth,
+          displayHeight))
+  {
+    Serial.println("ERROR: MJPEG decoder setup failed");
+    mjpegFile.close();
+    return;
+  }
 
   while (mjpegFile.available() && mjpeg.readMjpegBuf())
   {
@@ -234,6 +266,9 @@ void setup(void)
     Serial.println("gfx->begin() failed!");
   }
 
+  displayWidth = gfx->width();
+  displayHeight = gfx->height();
+
   pinMode(GFX_BL, OUTPUT);
   digitalWrite(GFX_BL, HIGH);
 
@@ -255,7 +290,7 @@ void setup(void)
   }
 
   Serial.println("Buffer allocation");
-  estimateBufferSize = gfx->width() * gfx->height() * 2 / 5;
+  estimateBufferSize = displayWidth * displayHeight * 2 / 5;
   mjpeg_buf = (uint8_t *)heap_caps_malloc(estimateBufferSize, MALLOC_CAP_8BIT);
   if (!mjpeg_buf)
   {
@@ -271,6 +306,11 @@ void setup(void)
 
 void loop(void)
 {
+  if (mjpegCount == 0)
+  {
+    return;
+  }
+
   play_selected_mjpeg(currentMjpegIndex);
 
   currentMjpegIndex++;
