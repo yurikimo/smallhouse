@@ -2,6 +2,10 @@
 
 `SmallHouse` is an ESP32-S3 project that plays MJPEG videos from an SD card on a 320x480 ST7796 display. The code is organized into small Arduino-friendly C++ modules.
 
+<p align="center">
+  <img src="smallhouse.gif" width="480"/>
+</p>
+
 ## Hardware
 
 - ESP32-S3 board
